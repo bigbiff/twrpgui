@@ -1,0 +1,2 @@
+Main-Class: twrpGui
+Class-Path: miglayout-4.0-swing.jar
