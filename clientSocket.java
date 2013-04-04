@@ -28,16 +28,35 @@ public class clientSocket implements Runnable {
 		int c;
 		StringBuffer instr = new StringBuffer();
 		try {
+			//InetAddress address = InetAddress.getByName(host);
+			connection = new Socket(host, port);
+			twrpGui.updateTWRPConsole("Connected to phone...");
+		}
+		catch (IOException e) {
+			twrpGui.updateTWRPConsole("IOException: " + e);
+			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+		}
+		catch (Exception g) {
+			twrpGui.updateTWRPConsole("Exception: " + g);
+			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+		}
+		try {
+			
 			BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream());
 			OutputStreamWriter osw = new OutputStreamWriter(bos, "US-ASCII");
 			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
 			InputStreamReader isr = new InputStreamReader(bis, "US-ASCII");
 			System.out.println("storage: " + argument);
 			osw.write("lsbackups " + argument);
-			while ((c = isr.read()) != 13)
+			osw.flush();
+			while ((c = isr.read()) > 0) {
 				instr.append((char) c);
-			System.out.println(instr);
-			connection.close();
+			}
+			System.out.println(instr);	
+			bos.close();
+			osw.close();
+			bis.close();
+			isr.close();
 			twrpGui.updateTWRPConsole(instr.toString());
 		}
 		catch (IOException e) {
@@ -55,31 +74,19 @@ public class clientSocket implements Runnable {
 	}
 
 	public void run() {
-		try {
-			InetAddress address = InetAddress.getByName(host);
-			Socket connection = new Socket(address, port);
-			twrpGui.updateTWRPConsole("Connected to phone...");
-		}
-		catch (IOException e) {
-			twrpGui.updateTWRPConsole("IOException: " + e);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
-		}
-		catch (Exception g) {
-			twrpGui.updateTWRPConsole("Exception: " + g);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
-		}
-		System.out.println("blah");
 		while (true) {
 			if ((data = cmd.getData()) != "") {
 				String[] cmddata = data.split(" ");
 				String cmdToSend, argument;
 				cmdToSend = cmddata[0].trim();
 				argument = cmddata[1].trim().toLowerCase();
+				System.out.println(cmdToSend);
 				if ("lsbackups".equals(cmdToSend)) {
+					cmd.setData("");
 					lsbackups(argument);
 				}
 				try {
-					Thread.sleep(30000);
+					Thread.sleep(10);
 				}
 				catch (InterruptedException ie) {
 					System.out.println("interrupted");

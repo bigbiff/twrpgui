@@ -27,7 +27,7 @@ public class twrpGui {
 	private JPanel top = new JPanel(new MigLayout("insets 0"));
 	private static JTextArea textArea = new JTextArea(5, 60);
 	private JButton parButton = new JButton("Parent Directory");
-	private JButton connectButton = new JButton("Connect");
+	//private JButton connectButton = new JButton("Connect");
 	private JButton toButton = new JButton("->");
 	private JButton fromButton = new JButton("<-");
 	private JButton saveLogButton = new JButton("Save Log");
@@ -106,6 +106,9 @@ public class twrpGui {
 	}
     
 	public twrpGui() {
+		clientSocket recovery = new clientSocket(cmd);
+		Thread t = new Thread(recovery);
+		t.start();
 		fileListVals.addListSelectionListener(new ListSelectionListener() {
     		public void valueChanged(ListSelectionEvent event) {
     			String strValue;
@@ -171,14 +174,14 @@ public class twrpGui {
 		top.add(internalRadio);
 		top.add(externalRadio, "wrap");
 		left.add(ctwrp, "gaptop 30, gapleft 35, grow, push");
-		center.add(connectButton, "gaptop 30, center, wrap, pushx");
-		center.add(toButton, "center, wrap");
+		//center.add(connectButton, "gaptop 30, center, wrap, pushx");
+		center.add(toButton, "gaptop 30, center, wrap, pushx");
 		center.add(fromButton, "center, wrap");
 		bottom.add(textArea, "center, grow, push");
 		bottom.add(saveLogButton, "gapleft 10");
 		right.add(parButton, "center, growy, wrap");
 		right.add(ftwrp, "right, gapright 35, grow, push");
-		connectButton.addActionListener(new connectListener());
+		//connectButton.addActionListener(new connectListener());
 		parButton.addActionListener(new parListener());
 		saveLogButton.addActionListener(new saveLogListener());
 		twrpTab.addTab("Backup File Manager", tabFileMgr);
@@ -204,15 +207,15 @@ public class twrpGui {
 		}
 	}
 	
+	/*
 	private class connectListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			textArea.append("Connecting to phone...\n");
 			clientSocket recovery = new clientSocket(cmd);
 			Thread t = new Thread(recovery);
 			t.start();
 		}
 	}
-
+	*/
 	private class saveLogListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {	
 			String text;
