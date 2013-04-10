@@ -26,17 +26,15 @@ public class twrpGui {
 	private JPanel bottom = new JPanel(new MigLayout());
 	private JPanel top = new JPanel(new MigLayout("insets 0"));
 	private static JTextArea textArea = new JTextArea(5, 60);
+	private JButton connectButton = new JButton("Connect");
 	private JButton parButton = new JButton("Parent Directory");
-	//private JButton connectButton = new JButton("Connect");
 	private JButton toButton = new JButton("->");
 	private JButton fromButton = new JButton("<-");
 	private JButton saveLogButton = new JButton("Save Log");
-	private JLabel storageLabel = new JLabel("Storage:");
-	private JRadioButton internalRadio = new JRadioButton("Internal", false);
-	private JRadioButton externalRadio = new JRadioButton("External", false);
-	private ButtonGroup storageGroup = new ButtonGroup();
 	private DefaultListModel twrpListModel = new DefaultListModel();
 	private DefaultListModel fileListModel = new DefaultListModel();
+	private static DefaultComboBoxModel comboModel = new DefaultComboBoxModel();
+	private static JComboBox storageComboBox = new JComboBox(comboModel);
 	private File fileList = new File(System.getProperty("user.home"));
 	private JScrollPane ctwrp = getTWListStrings(twrpFiles(), true);
 	private JScrollPane ftwrp = getLocalFiles(fileList.listFiles(new TextFileFilter()), true);
@@ -46,6 +44,7 @@ public class twrpGui {
 	private String parDir, origParDir;
 	private Boolean nofiles;
 	static volatile MutableObject cmd = new MutableObject();
+	static volatile MutableObject data = new MutableObject();
 	
 	public static void updateTWRPConsole(final String text) {
 		if (!SwingUtilities.isEventDispatchThread()) {
@@ -56,6 +55,21 @@ public class twrpGui {
 				}
 			});
 		}
+	}
+
+	public static void updateStorageCombo(final String text) {
+		if (!SwingUtilities.isEventDispatchThread()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					updateStorageCombo(text);
+				}
+			});
+		}
+	}
+
+	static private void updateCombo(String text) {
+		comboModel.addElement(text);
 	}
 	
 	static private void updateConsole(String text) {
@@ -106,9 +120,17 @@ public class twrpGui {
 	}
     
 	public twrpGui() {
-		clientSocket recovery = new clientSocket(cmd);
-		Thread t = new Thread(recovery);
-		t.start();
+		clientSocket recovery = new clientSocket(cmd, data);
+		serverSocket recoveryServer = new serverSocket(data);
+		Thread client = new Thread(recovery);
+		Thread server = new Thread(recoveryServer);
+		client.start();
+		server.start();
+		/*
+		int ret = recovery.testConnect();
+		if (ret == -1)
+			JOptionPane.showMessageDialog(f, "Please enable RNDIS!");
+		*/
 		fileListVals.addListSelectionListener(new ListSelectionListener() {
     		public void valueChanged(ListSelectionEvent event) {
     			String strValue;
@@ -116,7 +138,7 @@ public class twrpGui {
     			File[] newAll;
     			if (event.getSource() == fileListVals && !event.getValueIsAdjusting()) {
     				JList list = (JList) event.getSource();
-    				int selection = list.getSelectedIndex();
+    				//int selection = list.getSelectedIndex();
     				if (list.getSelectedValue() != null) {
     					nofiles = false;
     					strValue = list.getSelectedValue().toString();
@@ -166,22 +188,16 @@ public class twrpGui {
 		tabFileMgr.add(right, "right, grow, push");
 		tabFileMgr.add(bottom, "south, grow, push");
 		textArea.setEditable(false);
-		storageGroup.add(internalRadio);
-		storageGroup.add(externalRadio);
-		internalRadio.addActionListener(new storageListener());
-		externalRadio.addActionListener(new storageListener());
-		top.add(storageLabel, "wrap");
-		top.add(internalRadio);
-		top.add(externalRadio, "wrap");
+		top.add(storageComboBox);
 		left.add(ctwrp, "gaptop 30, gapleft 35, grow, push");
-		//center.add(connectButton, "gaptop 30, center, wrap, pushx");
-		center.add(toButton, "gaptop 30, center, wrap, pushx");
+		center.add(connectButton, "gaptop 30, center, wrap, pushx");
+		center.add(toButton, "center, wrap");
 		center.add(fromButton, "center, wrap");
 		bottom.add(textArea, "center, grow, push");
 		bottom.add(saveLogButton, "gapleft 10");
 		right.add(parButton, "center, growy, wrap");
 		right.add(ftwrp, "right, gapright 35, grow, push");
-		//connectButton.addActionListener(new connectListener());
+		connectButton.addActionListener(new connectListener());
 		parButton.addActionListener(new parListener());
 		saveLogButton.addActionListener(new saveLogListener());
 		twrpTab.addTab("Backup File Manager", tabFileMgr);
@@ -199,23 +215,12 @@ public class twrpGui {
 		twrpListModel.addElement("test4");
 	}
 	
-	private class storageListener implements ActionListener {
+	private class connectListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			String type = e.getActionCommand();
-			clientSocket.setStorage(type);
-			cmd.setData("lsbackups " + type);
+			cmd.setData("getstorage");
 		}
 	}
 	
-	/*
-	private class connectListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			clientSocket recovery = new clientSocket(cmd);
-			Thread t = new Thread(recovery);
-			t.start();
-		}
-	}
-	*/
 	private class saveLogListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {	
 			String text;
