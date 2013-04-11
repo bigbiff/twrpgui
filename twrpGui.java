@@ -62,7 +62,8 @@ public class twrpGui {
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					updateStorageCombo(text);
+					updateCombo(text);
+					System.out.println("here");
 				}
 			});
 		}

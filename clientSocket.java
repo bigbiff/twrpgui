@@ -16,6 +16,7 @@ public class clientSocket implements Runnable {
 	private volatile MutableObject cmd;
 	private volatile MutableObject data;
 	private String cdata;
+	private StringBuffer instr;
 	
 	public clientSocket(MutableObject cmd, MutableObject data) {
 		this.cmd = cmd;
@@ -24,7 +25,7 @@ public class clientSocket implements Runnable {
 	
 	private int getData() {
 		int c;
-		StringBuffer instr = new StringBuffer();
+		instr = new StringBuffer();
 		try {
 			connection = new Socket(host, dataPort);
 		}
@@ -44,15 +45,15 @@ public class clientSocket implements Runnable {
 			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
 			InputStreamReader isr = new InputStreamReader(bis, "US-ASCII");
 
-		while ((c = isr.read()) > 0) {
-			instr.append((char) c);
-		}	
-		bos.close();
-		osw.close();
-		bis.close();
-		isr.close();
-		connection.close();
-		twrpGui.updateTWRPConsole("\n" + instr.toString());
+			while ((c = isr.read()) > 0) {
+				instr.append((char) c);
+			}	
+			bos.close();
+			osw.close();
+			bis.close();
+			isr.close();
+			connection.close();
+			//twrpGui.updateTWRPConsole("\n" + instr.toString());
 		}
 		catch (IOException e) {
 			twrpGui.updateTWRPConsole("IOException: " + e);
@@ -193,6 +194,10 @@ public class clientSocket implements Runnable {
 					}
 					if (getData() != 0)
 						return;
+					String[] elements = instr.toString().split(" ");
+					for (String element: elements) {
+						twrpGui.updateStorageCombo(element);
+					}
 				}
 				try {
 					Thread.sleep(10);
