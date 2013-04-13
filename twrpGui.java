@@ -41,11 +41,22 @@ public class twrpGui {
 	private JScrollPane ftwrp = getLocalFiles(fileList.listFiles(new TextFileFilter()), true);
 	private JFileChooser saveLogFileChooser = new JFileChooser();
 	private String twDirSelected = System.getProperty("user.home");
-	private JList fileListVals;
+	private JList fileListVals, twListVals;
 	private String parDir, origParDir, storagearg;
 	private Boolean nofiles;
 	static volatile MutableObject cmd = new MutableObject();
 	static volatile MutableObject data = new MutableObject();
+	
+	public static void clearTWRPFiles() {
+		if (!SwingUtilities.isEventDispatchThread()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					clearTWListFiles();
+				}
+			});
+		}
+	}
 	
 	public static void updateTWRPFiles(final String text) {
 		if (!SwingUtilities.isEventDispatchThread()) {
@@ -80,7 +91,11 @@ public class twrpGui {
 			});
 		}
 	}
-
+	
+	static private void clearTWListFiles() {
+		twrpListModel.removeAllElements();
+	}
+	
 	static private void updateTWFiles(String text) {
 		twrpListModel.addElement(text);
 	}
@@ -110,15 +125,15 @@ public class twrpGui {
     }
 	
 	private JScrollPane getTWListStrings(boolean vertical) {
-		JList list = new JList(twrpListModel);
-		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		twListVals = new JList(twrpListModel);
+		twListVals.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		if (!vertical) {
-            list.setLayoutOrientation(javax.swing.JList.HORIZONTAL_WRAP);
-            list.setVisibleRowCount(-1);
+            twListVals.setLayoutOrientation(javax.swing.JList.HORIZONTAL_WRAP);
+            twListVals.setVisibleRowCount(-1);
         } else {
-            list.setVisibleRowCount(9);
+            twListVals.setVisibleRowCount(9);
         }
-        return new JScrollPane(list);
+        return new JScrollPane(twListVals);
 	}
     
 	public twrpGui() {
@@ -133,51 +148,6 @@ public class twrpGui {
 		if (ret == -1)
 			JOptionPane.showMessageDialog(f, "Please enable RNDIS!");
 		*/
-		fileListVals.addListSelectionListener(new ListSelectionListener() {
-    		public void valueChanged(ListSelectionEvent event) {
-    			String strValue;
-    			File fileListNew;
-    			File[] newAll;
-    			if (event.getSource() == fileListVals && !event.getValueIsAdjusting()) {
-    				JList list = (JList) event.getSource();
-    				if (list.getSelectedValue() != null) {
-    					nofiles = false;
-    					strValue = list.getSelectedValue().toString();
-    					parDir = strValue;
-    					twDirSelected = parDir;
-    					origParDir = parDir;
-    					System.out.println("twrpGUI parDir:" + parDir);
-    				}
-    				else {
-    					nofiles = true;
-    					if (twDirSelected == null) {
-    						parDir = "/";
-    					}
-    					origParDir = parDir;
-    					twDirSelected = parDir;
-    					System.out.println("gui here parDir: " + parDir);
-    					return;
-    				}
-    				newAll = new File(strValue).listFiles(new TextFileFilter());
-    				Arrays.sort(newAll);
-    				if (newAll.length == 0) {
-    					parDir = common.getParentDir(parDir);
-    					twDirSelected = parDir;
-    					origParDir = parDir;
-    					System.out.println("here3 oarDur: " + parDir);
-    				}
-      				else {			
-	    				fileListModel.removeAllElements();
-	    				for (int i = 0; i < newAll.length; i++) {
-	    					fileListModel.addElement(newAll[i]);
-	    	 				ftwrp.revalidate();
-	        				ftwrp.repaint();
-	    				}
-    				}
-    			}
-    		}
-        });
-	
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		f.setLayout(new MigLayout("", "[grow]", "[grow]"));
 		f.getContentPane().add(main, "grow, push");
@@ -203,6 +173,8 @@ public class twrpGui {
 		connectButton.addActionListener(new connectListener());
 		parButton.addActionListener(new parListener());
 		saveLogButton.addActionListener(new saveLogListener());
+		twListVals.addMouseListener(new twrpFileListener()); 
+		fileListVals.addMouseListener(new fileListener());
 		twrpTab.addTab("Backup File Manager", tabFileMgr);
 		ftwrp.setPreferredSize(new Dimension(200, 200));
 		ctwrp.setPreferredSize(new Dimension(200, 200));
@@ -215,6 +187,64 @@ public class twrpGui {
 		nofiles = false;
 	}
 
+	private class twrpFileListener extends MouseAdapter {
+		public void mouseClicked(MouseEvent event) {
+			if (event.getClickCount() == 2) {
+				int index = twListVals.locationToIndex(event.getPoint());
+				Object item = twrpListModel.getElementAt(index);
+				String strValue = item.toString();
+				System.out.println(strValue);
+				if (strValue != "" || strValue != null)
+					cmd.setData("lsbackups " + strValue);
+			}
+		}
+	}
+	
+	private class fileListener extends MouseAdapter {
+		public void mouseClicked(MouseEvent event) {
+			String strValue;
+			File[] newAll;
+			if (event.getClickCount() == 2) {
+				int index = fileListVals.locationToIndex(event.getPoint());
+				Object item = fileListModel.getElementAt(index);
+				strValue = item.toString();
+				if (strValue != "" || strValue != null) {
+					nofiles = false;
+					parDir = strValue;
+					twDirSelected = parDir;
+					origParDir = parDir;
+					System.out.println("twrpGUI parDir:" + parDir);
+				}
+				else {
+					nofiles = true;
+					if (twDirSelected == null) {
+						parDir = "/";
+					}
+					origParDir = parDir;
+					twDirSelected = parDir;
+					System.out.println("gui here parDir: " + parDir);
+					return;
+				}
+				newAll = new File(strValue).listFiles(new TextFileFilter());
+				Arrays.sort(newAll);
+				if (newAll.length == 0) {
+					parDir = common.getParentDir(parDir);
+					twDirSelected = parDir;
+					origParDir = parDir;
+					System.out.println("here3 oarDur: " + parDir);
+				}
+					else {			
+					fileListModel.removeAllElements();
+					for (int i = 0; i < newAll.length; i++) {
+						fileListModel.addElement(newAll[i]);
+		 				ftwrp.revalidate();
+	    				ftwrp.repaint();
+					}
+				}
+			}
+		}
+	}
+	
 	private class storageListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			String selected = comboModel.getSelectedItem().toString();
@@ -225,6 +255,7 @@ public class twrpGui {
 	
 	private class connectListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			connectButton.setText("Disconnect");
 			comboModel.removeAllElements();
 			cmd.setData("getstorage");
 		}
@@ -251,11 +282,6 @@ public class twrpGui {
 		}
 	}
 	
-	private class twrpFileListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			
-		}
-	}
 	private class parListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			File parFiles[];

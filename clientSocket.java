@@ -54,6 +54,7 @@ public class clientSocket implements Runnable {
 			bis.close();
 			isr.close();
 			connection.close();
+			System.out.println(instr.toString());
 			//twrpGui.updateTWRPConsole("\n" + instr.toString());
 		}
 		catch (IOException e) {
@@ -77,7 +78,7 @@ public class clientSocket implements Runnable {
 		System.out.println("in getstorage");
 		try {
 			connection = new Socket(host, ctrlPort);
-			twrpGui.updateTWRPConsole("Connected to phone...");
+			twrpGui.updateTWRPConsole("Connected to phone...\n");
 		}
 		catch (IOException e) {
 			twrpGui.updateTWRPConsole("IOException: " + e);
@@ -115,10 +116,10 @@ public class clientSocket implements Runnable {
 	}
 	
 	private void lsbackups(String argument) {
-		System.out.println("in lsbackups");
+		System.out.println("lsbackups arg: " + argument);
 		try {
 			connection = new Socket(host, ctrlPort);
-			twrpGui.updateTWRPConsole("Connected to phone...");
+			twrpGui.updateTWRPConsole("Connected to phone...\n");
 		}
 		catch (IOException e) {
 			twrpGui.updateTWRPConsole("IOException: " + e);
@@ -183,6 +184,7 @@ public class clientSocket implements Runnable {
 					if (getData() != 0)
 						return;
 					String[] elements = instr.toString().split(" ");
+					twrpGui.clearTWRPFiles();
 					for (String element: elements) {
 						System.out.println("element: " + element);
 						twrpGui.updateTWRPFiles(element);
