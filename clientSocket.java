@@ -7,6 +7,7 @@ import java.io.OutputStreamWriter;
 
 public class clientSocket implements Runnable {
 	private String host = "10.250.1.1";
+	//private String host = "127.0.0.1";
 	private int ctrlPort = 9000;
 	private int dataPort = 9001;
 	private String arg;
@@ -17,12 +18,12 @@ public class clientSocket implements Runnable {
 	private volatile MutableObject data;
 	private String cdata;
 	private StringBuffer instr;
-	
+
 	public clientSocket(MutableObject cmd, MutableObject data) {
 		this.cmd = cmd;
 		this.data = data;
 	}
-	
+
 	private int getData() {
 		int c;
 		instr = new StringBuffer();
@@ -165,11 +166,13 @@ public class clientSocket implements Runnable {
 					argument = cmddata[1].trim().toLowerCase();
 				else
 					argument = "";
+				System.out.println("cmd: " + cmdToSend);
 				if ("lsbackups".equals(cmdToSend)) {
 					System.out.println("cmd: " + cmdToSend);
 					lsbackups(argument);
 					cmd.setData("");
 					while (data.getData() != "readylsbackups") {
+						System.out.println("waiting for lsbackups");
 						try {
 							Thread.sleep(10);
 						}
@@ -179,6 +182,11 @@ public class clientSocket implements Runnable {
 					}
 					if (getData() != 0)
 						return;
+					String[] elements = instr.toString().split(" ");
+					for (String element: elements) {
+						System.out.println("element: " + element);
+						twrpGui.updateTWRPFiles(element);
+					}
 				}
 				if ("getstorage".equals(cmdToSend)) {
 					System.out.println("cmd: " + cmdToSend);

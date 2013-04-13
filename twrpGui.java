@@ -26,25 +26,37 @@ public class twrpGui {
 	private JPanel bottom = new JPanel(new MigLayout());
 	private JPanel top = new JPanel(new MigLayout("insets 0"));
 	private static JTextArea textArea = new JTextArea(5, 60);
+	private JButton getStorage = new JButton("Get Contents");
 	private JButton connectButton = new JButton("Connect");
 	private JButton parButton = new JButton("Parent Directory");
 	private JButton toButton = new JButton("->");
 	private JButton fromButton = new JButton("<-");
 	private JButton saveLogButton = new JButton("Save Log");
-	private DefaultListModel twrpListModel = new DefaultListModel();
+	private static DefaultListModel twrpListModel = new DefaultListModel();
 	private DefaultListModel fileListModel = new DefaultListModel();
 	private static DefaultComboBoxModel comboModel = new DefaultComboBoxModel();
 	private static JComboBox storageComboBox = new JComboBox(comboModel);
 	private File fileList = new File(System.getProperty("user.home"));
-	private JScrollPane ctwrp = getTWListStrings(twrpFiles(), true);
+	private JScrollPane ctwrp = getTWListStrings(true);
 	private JScrollPane ftwrp = getLocalFiles(fileList.listFiles(new TextFileFilter()), true);
 	private JFileChooser saveLogFileChooser = new JFileChooser();
 	private String twDirSelected = System.getProperty("user.home");
 	private JList fileListVals;
-	private String parDir, origParDir;
+	private String parDir, origParDir, storagearg;
 	private Boolean nofiles;
 	static volatile MutableObject cmd = new MutableObject();
 	static volatile MutableObject data = new MutableObject();
+	
+	public static void updateTWRPFiles(final String text) {
+		if (!SwingUtilities.isEventDispatchThread()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					updateTWFiles(text);
+				}
+			});
+		}
+	}
 	
 	public static void updateTWRPConsole(final String text) {
 		if (!SwingUtilities.isEventDispatchThread()) {
@@ -63,34 +75,22 @@ public class twrpGui {
 				@Override
 				public void run() {
 					updateCombo(text);
-					System.out.println("here");
+					System.out.println("text: " + text);
 				}
 			});
 		}
 	}
 
+	static private void updateTWFiles(String text) {
+		twrpListModel.addElement(text);
+	}
+	
 	static private void updateCombo(String text) {
 		comboModel.addElement(text);
 	}
 	
 	static private void updateConsole(String text) {
 		textArea.append(text);
-	}
-	
-	private String[] twrpFiles() {
-		String[] twFiles;
-		twFiles = new String[10];
-		twFiles[0] = "test10000000000000";
-		twFiles[1] = "test";
-		twFiles[2] = "test";
-		twFiles[3] = "test";
-		twFiles[4] = "test";
-		twFiles[5] = "test";
-		twFiles[6] = "test";
-		twFiles[7] = "test";
-		twFiles[8] = "test";
-		twFiles[9] = "test";
-		return twFiles;
 	}
 	
 	private JScrollPane getLocalFiles(File[] all, boolean vertical) {
@@ -109,8 +109,9 @@ public class twrpGui {
         return new JScrollPane(fileListVals);
     }
 	
-	private JScrollPane getTWListStrings(String[] all, boolean vertical) {
-		JList list = new JList(all);
+	private JScrollPane getTWListStrings(boolean vertical) {
+		JList list = new JList(twrpListModel);
+		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		if (!vertical) {
             list.setLayoutOrientation(javax.swing.JList.HORIZONTAL_WRAP);
             list.setVisibleRowCount(-1);
@@ -139,7 +140,6 @@ public class twrpGui {
     			File[] newAll;
     			if (event.getSource() == fileListVals && !event.getValueIsAdjusting()) {
     				JList list = (JList) event.getSource();
-    				//int selection = list.getSelectedIndex();
     				if (list.getSelectedValue() != null) {
     					nofiles = false;
     					strValue = list.getSelectedValue().toString();
@@ -189,7 +189,8 @@ public class twrpGui {
 		tabFileMgr.add(right, "right, grow, push");
 		tabFileMgr.add(bottom, "south, grow, push");
 		textArea.setEditable(false);
-		top.add(storageComboBox);
+		top.add(storageComboBox, "growx");
+		top.add(getStorage, "gapleft 10, growx");
 		left.add(ctwrp, "gaptop 30, gapleft 35, grow, push");
 		center.add(connectButton, "gaptop 30, center, wrap, pushx");
 		center.add(toButton, "center, wrap");
@@ -198,26 +199,33 @@ public class twrpGui {
 		bottom.add(saveLogButton, "gapleft 10");
 		right.add(parButton, "center, growy, wrap");
 		right.add(ftwrp, "right, gapright 35, grow, push");
+		getStorage.addActionListener(new storageListener());
 		connectButton.addActionListener(new connectListener());
 		parButton.addActionListener(new parListener());
 		saveLogButton.addActionListener(new saveLogListener());
 		twrpTab.addTab("Backup File Manager", tabFileMgr);
 		ftwrp.setPreferredSize(new Dimension(200, 200));
 		ctwrp.setPreferredSize(new Dimension(200, 200));
+		comboModel.addElement("Press Connect button");
 		f.pack();
 		f.setVisible(true);
 	}
 
 	public void launchTWRP() {
 		nofiles = false;
-		twrpListModel.addElement("test");
-		twrpListModel.addElement("test2");
-		twrpListModel.addElement("test3");
-		twrpListModel.addElement("test4");
+	}
+
+	private class storageListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			String selected = comboModel.getSelectedItem().toString();
+			System.out.println("selected: " + selected);
+			cmd.setData("lsbackups " + selected);
+		}
 	}
 	
 	private class connectListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			comboModel.removeAllElements();
 			cmd.setData("getstorage");
 		}
 	}
@@ -243,6 +251,11 @@ public class twrpGui {
 		}
 	}
 	
+	private class twrpFileListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			
+		}
+	}
 	private class parListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			File parFiles[];
