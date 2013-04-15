@@ -13,7 +13,7 @@ public class serverSocket implements Runnable {
 	private int port = 9000;
 	private String message;
 	private volatile MutableObject data;
-	private String[] datacmds = {"readylsbackups", "readystorage"};
+	private String[] datacmds = {"readylsbackups", "readystorage", "readybackup"};
 
 	public serverSocket(MutableObject data) {
 		this.data = data;
@@ -50,6 +50,9 @@ public class serverSocket implements Runnable {
 						}
 						else if ("readystorage".equals(message)) {
 							data.setData("readystorage");
+						}
+						else if ("readybackup".equals(message)) {
+							data.setData("readybackup");
 						}
 						System.out.println("data: " + data.getData());
 					}

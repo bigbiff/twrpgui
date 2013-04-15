@@ -28,10 +28,11 @@ public class twrpGui {
 	private static JTextArea textArea = new JTextArea(5, 60);
 	private JButton getStorage = new JButton("Get Contents");
 	private JButton connectButton = new JButton("Connect");
-	private JButton parButton = new JButton("Parent Directory");
+	private JButton parButton = new JButton("..");
 	private JButton toButton = new JButton("->");
 	private JButton fromButton = new JButton("<-");
 	private JButton saveLogButton = new JButton("Save Log");
+	private JButton twParButton = new JButton("..");
 	private static DefaultListModel twrpListModel = new DefaultListModel();
 	private DefaultListModel fileListModel = new DefaultListModel();
 	private static DefaultComboBoxModel comboModel = new DefaultComboBoxModel();
@@ -42,10 +43,21 @@ public class twrpGui {
 	private JFileChooser saveLogFileChooser = new JFileChooser();
 	private String twDirSelected = System.getProperty("user.home");
 	private JList fileListVals, twListVals;
-	private String parDir, origParDir, storagearg;
+	private String parDir, origParDir, storagearg, twParDir, twFile, sendFile;
 	private Boolean nofiles;
 	static volatile MutableObject cmd = new MutableObject();
 	static volatile MutableObject data = new MutableObject();
+	
+	public static void clearTWStorageCombo() {
+		if (!SwingUtilities.isEventDispatchThread()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					clearStorageCombo();
+				}
+			});
+		}
+	}
 	
 	public static void clearTWRPFiles() {
 		if (!SwingUtilities.isEventDispatchThread()) {
@@ -90,6 +102,10 @@ public class twrpGui {
 				}
 			});
 		}
+	}
+	
+	static private void clearStorageCombo() {
+		comboModel.removeAllElements();
 	}
 	
 	static private void clearTWListFiles() {
@@ -137,17 +153,9 @@ public class twrpGui {
 	}
     
 	public twrpGui() {
-		clientSocket recovery = new clientSocket(cmd, data);
 		serverSocket recoveryServer = new serverSocket(data);
-		Thread client = new Thread(recovery);
 		Thread server = new Thread(recoveryServer);
-		client.start();
 		server.start();
-		/*
-		int ret = recovery.testConnect();
-		if (ret == -1)
-			JOptionPane.showMessageDialog(f, "Please enable RNDIS!");
-		*/
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		f.setLayout(new MigLayout("", "[grow]", "[grow]"));
 		f.getContentPane().add(main, "grow, push");
@@ -161,16 +169,19 @@ public class twrpGui {
 		textArea.setEditable(false);
 		top.add(storageComboBox, "growx");
 		top.add(getStorage, "gapleft 10, growx");
-		left.add(ctwrp, "gaptop 30, gapleft 35, grow, push");
+		left.add(twParButton, "gaptop 10, gapleft 130, wrap");
+		left.add(ctwrp, "gapleft 35, grow, push");
 		center.add(connectButton, "gaptop 30, center, wrap, pushx");
 		center.add(toButton, "center, wrap");
 		center.add(fromButton, "center, wrap");
 		bottom.add(textArea, "center, grow, push");
 		bottom.add(saveLogButton, "gapleft 10");
-		right.add(parButton, "center, growy, wrap");
+		right.add(parButton, "center, gapright 10, wrap");
 		right.add(ftwrp, "right, gapright 35, grow, push");
+		toButton.addActionListener(new toListener());
 		getStorage.addActionListener(new storageListener());
 		connectButton.addActionListener(new connectListener());
+		twParButton.addActionListener(new twParListener());
 		parButton.addActionListener(new parListener());
 		saveLogButton.addActionListener(new saveLogListener());
 		twListVals.addMouseListener(new twrpFileListener()); 
@@ -189,13 +200,35 @@ public class twrpGui {
 
 	private class twrpFileListener extends MouseAdapter {
 		public void mouseClicked(MouseEvent event) {
+			if (event.getClickCount() == 1) {
+				int index = twListVals.locationToIndex(event.getPoint());
+				Object item = twrpListModel.getElementAt(index);
+				twFile = item.toString();
+				System.out.println("strValue: " + twFile);
+				if (twFile != "" || twFile != null) {
+					sendFile = twFile; 
+				}
+			}
 			if (event.getClickCount() == 2) {
 				int index = twListVals.locationToIndex(event.getPoint());
 				Object item = twrpListModel.getElementAt(index);
-				String strValue = item.toString();
-				System.out.println(strValue);
-				if (strValue != "" || strValue != null)
-					cmd.setData("lsbackups " + strValue);
+				twFile = item.toString();
+				System.out.println("strValue: " + twFile);
+				if (twFile != "" || twFile != null) {
+					cmd.setData("lsbackups " + twFile);
+					String tokens[] = twFile.split("/");
+					int count = tokens.length;
+					twParDir = "/";
+					System.out.println("count: " + count);
+					for (int i = 1; i < count - 1; ++i) {
+						twParDir = twParDir + tokens[i];
+						System.out.println("i: " + i);
+						System.out.println("twParDir: " + twParDir);
+						if (i < count - 2)
+							twParDir += "/";
+					}
+					System.out.println("twParDir: " + twParDir);
+				}
 			}
 		}
 	}
@@ -245,17 +278,59 @@ public class twrpGui {
 		}
 	}
 	
+	private class toListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			cmd.setData("sendbackup " + sendFile);
+			twProgress progress = new twProgress();	
+			Thread progressT = new Thread(progress);
+			progressT.start();
+		}
+	}
+	
 	private class storageListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			if (connectButton.getText() == "Connect") {
+				JOptionPane.showMessageDialog(f, "Press Connect button first");
+				return;
+			}
 			String selected = comboModel.getSelectedItem().toString();
-			System.out.println("selected: " + selected);
 			cmd.setData("lsbackups " + selected);
+		}
+	}
+	
+	private class twParListener implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			if (twParDir == "") {
+				System.out.println("twFile: " + twFile);
+				String tokens[] = twFile.split("/");
+				int count = tokens.length;
+				twParDir = "/";
+				for (int i = 1; i < count - 1; ++i) {
+					twParDir = twParDir + tokens[i];
+					System.out.println("i: " + i);
+					System.out.println("twParDir: " + twParDir);
+					if (i < count - 2)
+						twParDir += "/";
+				}
+			}
+			System.out.println("twParDir: " + twParDir);
+			cmd.setData("lsbackups " + twParDir);
+			twFile = twParDir;
+			twParDir = "";
 		}
 	}
 	
 	private class connectListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			if (connectButton.getText() == "Disconnect") {
+				cmd.setData("disconnect");
+				connectButton.setText("Connect");
+				return;
+			}
 			connectButton.setText("Disconnect");
+			clientSocket recovery = new clientSocket(cmd, data);
+			Thread client = new Thread(recovery);
+			client.start();
 			comboModel.removeAllElements();
 			cmd.setData("getstorage");
 		}

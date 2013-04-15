@@ -32,12 +32,12 @@ public class clientSocket implements Runnable {
 		}
 		catch (IOException e) {
 			twrpGui.updateTWRPConsole("IOException: " + e);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
 			return -1;
 		}
 		catch (Exception g) {
 			twrpGui.updateTWRPConsole("Exception: " + g);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
 			return -1;
 		}
 		try {	
@@ -74,26 +74,25 @@ public class clientSocket implements Runnable {
 		return 0;
 	}
 
-	private void getstorage(String argument) {
-		System.out.println("in getstorage");
+	private void sendCmd(String cmd) {
 		try {
 			connection = new Socket(host, ctrlPort);
 			twrpGui.updateTWRPConsole("Connected to phone...\n");
 		}
 		catch (IOException e) {
 			twrpGui.updateTWRPConsole("IOException: " + e);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
 		}
 		catch (Exception g) {
 			twrpGui.updateTWRPConsole("Exception: " + g);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
+			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
 		}
 		try {	
 			BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream());
 			OutputStreamWriter osw = new OutputStreamWriter(bos, "US-ASCII");
 			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
 			InputStreamReader isr = new InputStreamReader(bis, "US-ASCII");
-			osw.write("getstorage " + argument);
+			osw.write(cmd);
 			osw.flush();	
 			bos.close();
 			osw.close();
@@ -112,53 +111,30 @@ public class clientSocket implements Runnable {
 			}
 			twrpGui.updateTWRPConsole("Exception: " + g + "\n");
 			twrpGui.updateTWRPConsole(st.toString());
-		}		
+		}						
+	}
+	
+	private void sendbackup(String argument) {
+		sendCmd("sendbackup " + argument);
+	}
+	
+	private void getstorage(String argument) {
+		sendCmd("getstorage " + argument);
 	}
 	
 	private void lsbackups(String argument) {
 		System.out.println("lsbackups arg: " + argument);
-		try {
-			connection = new Socket(host, ctrlPort);
-			twrpGui.updateTWRPConsole("Connected to phone...\n");
-		}
-		catch (IOException e) {
-			twrpGui.updateTWRPConsole("IOException: " + e);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
-		}
-		catch (Exception g) {
-			twrpGui.updateTWRPConsole("Exception: " + g);
-			twrpGui.updateTWRPConsole("Make sure rndis is enabled!\n");
-		}
-		try {	
-			BufferedOutputStream bos = new BufferedOutputStream(connection.getOutputStream());
-			OutputStreamWriter osw = new OutputStreamWriter(bos, "US-ASCII");
-			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
-			InputStreamReader isr = new InputStreamReader(bis, "US-ASCII");
-			System.out.println("storage: " + argument);
-			osw.write("lsbackups " + argument);
-			osw.flush();	
-			bos.close();
-			osw.close();
-			bis.close();
-			isr.close();
-			connection.close();
-		}
-		catch (IOException e) {
-			twrpGui.updateTWRPConsole("IOException: " + e);
-		}
-		catch (Exception g) {
-			StringBuilder st = new StringBuilder();
-			for (StackTraceElement element: g.getStackTrace()) {
-				st.append(element);
-				st.append("\n");
-			}
-			twrpGui.updateTWRPConsole("Exception: " + g + "\n");
-			twrpGui.updateTWRPConsole(st.toString());
-		}		
+		sendCmd("lsbackups " + argument);
 	}
 
 	public void run() {
 		while (true) {
+			try {
+				Thread.sleep(10);
+			}
+			catch (InterruptedException ie) {
+				System.out.println("interrupted");
+			}
 			if ((cdata = cmd.getData()) != "") {
 				String[] cmddata = cdata.split(" ");
 				String cmdToSend, argument;
@@ -167,7 +143,22 @@ public class clientSocket implements Runnable {
 					argument = cmddata[1].trim().toLowerCase();
 				else
 					argument = "";
-				System.out.println("cmd: " + cmdToSend);
+				if ("sendbackup".equals(cmdToSend)) {
+					System.out.println("cmd: " + cmdToSend);
+					sendbackup(argument);
+					cmd.setData("");
+					while (data.getData() != "readylsbackups") {
+						System.out.println("waiting for lsbackups");
+						try {
+							Thread.sleep(10);
+						}
+						catch (InterruptedException ie) {
+							System.out.println("interrupted");
+						}
+					}
+					if (getData() != 0)
+						return;
+				}
 				if ("lsbackups".equals(cmdToSend)) {
 					System.out.println("cmd: " + cmdToSend);
 					lsbackups(argument);
@@ -208,6 +199,13 @@ public class clientSocket implements Runnable {
 					for (String element: elements) {
 						twrpGui.updateStorageCombo(element);
 					}
+				}
+				if ("disconnect".equals(cmdToSend)) {
+					System.out.println("cmd: " + cmdToSend);
+					twrpGui.clearTWStorageCombo();
+					twrpGui.updateStorageCombo("Press connect button");
+					twrpGui.clearTWRPFiles();
+					break;
 				}
 				try {
 					Thread.sleep(10);
