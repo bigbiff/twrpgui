@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.JList;
+import javax.swing.JDialog;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileSystemView;
@@ -25,6 +26,8 @@ public class twrpGui {
 	private JPanel right = new JPanel(new MigLayout());
 	private JPanel bottom = new JPanel(new MigLayout());
 	private JPanel top = new JPanel(new MigLayout("insets 0"));
+    private JProgressBar progress;
+	private JDialog twProgressD;
 	private static JTextArea textArea = new JTextArea(5, 60);
 	private JButton getStorage = new JButton("Get Contents");
 	private JButton connectButton = new JButton("Connect");
@@ -156,6 +159,9 @@ public class twrpGui {
 		serverSocket recoveryServer = new serverSocket(data);
 		Thread server = new Thread(recoveryServer);
 		server.start();
+        progress = new JProgressBar(0, 2000);
+        progress.setValue(0);
+        progress.setStringPainted(true);
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		f.setLayout(new MigLayout("", "[grow]", "[grow]"));
 		f.getContentPane().add(main, "grow, push");
@@ -281,9 +287,14 @@ public class twrpGui {
 	private class toListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			cmd.setData("sendbackup " + sendFile);
-			twProgress progress = new twProgress();	
-			Thread progressT = new Thread(progress);
+			twProgress twp = new twProgress(progress);
+			Thread progressT = new Thread(twp);
 			progressT.start();
+			twProgressD = new JDialog(f, "File Progress", Dialog.ModalityType.DOCUMENT_MODAL);
+			twProgressD.setLayout(new  MigLayout("", "[grow]", "[grow]"));
+			twProgressD.setSize(100, 100);
+			twProgressD.add(progress, "grow, push");
+			twProgressD.setVisible(true);
 		}
 	}
 	
