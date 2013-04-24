@@ -92,12 +92,11 @@ public class clientSocket implements Runnable {
 			return -1;
 		}
 		try {
-			int c;
+			long c;
 			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
-			InputStreamReader isr = new InputStreamReader(bis, "US-ASCII");
+			InputStreamReader isr = new InputStreamReader(bis, "UTF-8");
 			while ((c = isr.read()) != -1) {
-				//System.out.println("buffer: " + Integer.toHexString(c));
-				System.out.println("buffer: " + c);
+				System.out.println("buffer: " + Long.toHexString(c));
 			}	
 			//bos.close();
 			bis.close();
