@@ -10,15 +10,24 @@ public class common {
 
 class MutableObject {
 	   private String data = "";
-
+	   private String arg = "";
+	   
 	   public String getData() {
 	      return data;
 	   }
-
+	   
+	   public String getArg() {
+		   return arg;
+	   }
+	   
 	   public void setData(String data) {
 	      this.data = data;
 	   }
-
+	   
+	   public void setArg(String arg) {
+		   this.arg = arg;
+	   }
+	   
 	   @Override
 	   public String toString() {
 	      return data;

@@ -221,7 +221,7 @@ public class twrpGui {
 				twFile = item.toString();
 				System.out.println("strValue: " + twFile);
 				if (twFile != "" || twFile != null) {
-					cmd.setData("lsbackups " + twFile);
+					cmd.setData("lsdir " + twFile);
 					String tokens[] = twFile.split("/");
 					int count = tokens.length;
 					twParDir = "/";
@@ -286,7 +286,7 @@ public class twrpGui {
 	
 	private class toListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			cmd.setData("sendbackup " + sendFile);
+			cmd.setData("send " + sendFile);
 			twProgress twp = new twProgress(progress);
 			Thread progressT = new Thread(twp);
 			progressT.start();
@@ -305,7 +305,7 @@ public class twrpGui {
 				return;
 			}
 			String selected = comboModel.getSelectedItem().toString();
-			cmd.setData("lsbackups " + selected);
+			cmd.setData("lsdir " + selected);
 		}
 	}
 	
@@ -325,7 +325,7 @@ public class twrpGui {
 				}
 			}
 			System.out.println("twParDir: " + twParDir);
-			cmd.setData("lsbackups " + twParDir);
+			cmd.setData("lsdir " + twParDir);
 			twFile = twParDir;
 			twParDir = "";
 		}

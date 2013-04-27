@@ -13,20 +13,26 @@ public class serverSocket implements Runnable {
 	private int port = 9000;
 	private String message;
 	private volatile MutableObject data;
-	private String[] datacmds = {"readylsbackups", "readystorage", "readybackup"};
+	private String[] datacmds = {"readylsdir", "readystorage", "readysend"};
 
 	public serverSocket(MutableObject data) {
 		this.data = data;
 	}
 
 	public void run() {
-		while (true) {
+		String[] cmddata;
+		String cdata;
+		String message, argument;
+		message = "";
+		
+ 		while (true) {
 			try {
 				Thread.sleep(10);
 			}
 			catch (InterruptedException ie) {
 				System.out.println("interrupted");
 			}
+			
 			try {
 				List<String> cmdlist = Arrays.asList(datacmds);
 				server = new ServerSocket(port);
@@ -43,16 +49,26 @@ public class serverSocket implements Runnable {
 						catch (InterruptedException ie) {
 							System.out.println("interrupted");
 						}
-						message = br.readLine();
+						cdata = br.readLine();
+						System.out.println("cdata: " + cdata);
+				        cmddata = cdata.split(" ");
+				        
+				        message = cmddata[0].trim();
+				        if (cmddata.length > 1)
+				        	argument = cmddata[1].trim().toLowerCase();
+				        else
+				        	argument = "";
+				        System.out.println("arg: " + argument);
 						System.out.println("message: " + message);
-						if ("readylsbackups".equals(message)) {
-							data.setData("readylsbackups");
+						if ("readylsdir".equals(message)) {
+							data.setData("readylsdir");
 						}
 						else if ("readystorage".equals(message)) {
 							data.setData("readystorage");
 						}
-						else if ("readybackup".equals(message)) {
-							data.setData("readybackup");
+						else if ("readysend".equals(message)) {
+							data.setData("readysend");
+							data.setArg(argument);
 						}
 						System.out.println("data: " + data.getData());
 					}

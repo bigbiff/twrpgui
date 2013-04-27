@@ -1,9 +1,12 @@
 import java.net.*;
+import java.util.Arrays;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.DataOutputStream;
 import java.io.OutputStreamWriter;
 
 public class clientSocket implements Runnable {
@@ -77,46 +80,56 @@ public class clientSocket implements Runnable {
 		return 0;
 	}
 
-	private int getBinData() {
+	private int getBinData(double size) {
+		double s = 0;
 		try {
-			connection = new Socket(host, dataPort);
-		}
-		catch (IOException e) {
-			twrpGui.updateTWRPConsole("IOException: " + e);
-			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
-			return -1;
-		}
-		catch (Exception g) {
-			twrpGui.updateTWRPConsole("Exception: " + g);
-			twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
-			return -1;
-		}
-		try {
-			long c;
-			BufferedInputStream bis = new BufferedInputStream(connection.getInputStream());
-			InputStreamReader isr = new InputStreamReader(bis, "UTF-8");
-			while ((c = isr.read()) != -1) {
-				System.out.println("buffer: " + Long.toHexString(c));
-			}	
-			//bos.close();
-			bis.close();
-			connection.close();
-			//twrpGui.updateTWRPConsole("\n" + instr.toString());
-		}
-		catch (IOException e) {
-			twrpGui.updateTWRPConsole("IOException: " + e);
-			return -1;
-		}
-		catch (Exception g) {
-			StringBuilder st = new StringBuilder();
-			for (StackTraceElement element: g.getStackTrace()) {
-				st.append(element);
-				st.append("\n");
+			FileOutputStream fos = new FileOutputStream("/tmp/boot2.img");
+			DataOutputStream dos = new DataOutputStream(fos);
+			
+			while (s < size) {
+				System.out.println("s: " + s);
+				System.out.println("size: " + size);
+				if (s + 4096 > size)
+					s = s + (size - s);
+				else
+					s += 4096;
+				try {
+					connection = new Socket(host, dataPort);
+				}
+				catch (IOException e) {
+					twrpGui.updateTWRPConsole("IOException: " + e);
+					twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
+					return -1;
+				}
+				catch (Exception g) {
+					twrpGui.updateTWRPConsole("Exception: " + g);
+					twrpGui.updateTWRPConsole("\nMake sure rndis is enabled!\n");
+					return -1;
+				}
+				try {
+					int bytesRead, val;
+					byte[] bytestream = new byte[4096];
+					InputStream is = connection.getInputStream();
+					bytesRead = is.read(bytestream, 0, bytestream.length);
+					for (int i = 0; i < bytestream.length; ++i) {
+						val = bytestream[i] &0xFF;
+						dos.writeByte(val);
+						//System.out.println("val: " + Integer.toHexString(val));	
+					}
+					is.close();
+					connection.close();
+				}
+				catch (IOException e) {
+					twrpGui.updateTWRPConsole("IOException: " + e);
+					return -1;
+				}
 			}
-			twrpGui.updateTWRPConsole("Exception: " + g + "\n");
-			twrpGui.updateTWRPConsole(st.toString());
-			return -1;	
-		}		
+			dos.close();
+			fos.close();
+		}
+		catch (IOException e) {
+			return -1;
+		}
 		return 0;
 	}
 
@@ -162,16 +175,15 @@ public class clientSocket implements Runnable {
 	}
 	
 	private void sendbackup(String argument) {
-		sendCmd("sendbackup " + argument);
+		sendCmd("send " + argument);
 	}
 	
 	private void getstorage(String argument) {
 		sendCmd("getstorage " + argument);
 	}
 	
-	private void lsbackups(String argument) {
-		System.out.println("lsbackups arg: " + argument);
-		sendCmd("lsbackups " + argument);
+	private void lsdir(String argument) {
+		sendCmd("lsdir " + argument);
 	}
 
 	public void run() {
@@ -190,11 +202,11 @@ public class clientSocket implements Runnable {
 					argument = cmddata[1].trim().toLowerCase();
 				else
 					argument = "";
-				if ("sendbackup".equals(cmdToSend)) {
+				if ("send".equals(cmdToSend)) {
 					System.out.println("cmd: " + cmdToSend);
 					sendbackup(argument);
 					cmd.setData("");
-					while (data.getData() != "readybackup") {
+					while (data.getData() != "readysend") {
 						try {
 							Thread.sleep(10);
 						}
@@ -202,15 +214,14 @@ public class clientSocket implements Runnable {
 							System.out.println("interrupted");
 						}
 					}
-					if (getBinData() != 0) 
+					if (getBinData(Double.parseDouble(data.getArg())) != 0) 
 						return;
 				}
-				if ("lsbackups".equals(cmdToSend)) {
+				if ("lsdir".equals(cmdToSend)) {
 					System.out.println("cmd: " + cmdToSend);
-					lsbackups(argument);
+					lsdir(argument);
 					cmd.setData("");
-					while (data.getData() != "readylsbackups") {
-						System.out.println("waiting for lsbackups");
+					while (data.getData() != "readylsdir") {
 						try {
 							Thread.sleep(10);
 						}
@@ -223,7 +234,6 @@ public class clientSocket implements Runnable {
 					String[] elements = instr.toString().split(" ");
 					twrpGui.clearTWRPFiles();
 					for (String element: elements) {
-						System.out.println("element: " + element);
 						twrpGui.updateTWRPFiles(element);
 					}
 				}
