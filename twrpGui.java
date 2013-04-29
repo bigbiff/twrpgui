@@ -26,7 +26,7 @@ public class twrpGui {
 	private JPanel right = new JPanel(new MigLayout());
 	private JPanel bottom = new JPanel(new MigLayout());
 	private JPanel top = new JPanel(new MigLayout("insets 0"));
-    private JProgressBar progress;
+    private static JProgressBar progress;
 	private JDialog twProgressD;
 	private static JTextArea textArea = new JTextArea(5, 60);
 	private JButton getStorage = new JButton("Get Contents");
@@ -40,6 +40,7 @@ public class twrpGui {
 	private DefaultListModel fileListModel = new DefaultListModel();
 	private static DefaultComboBoxModel comboModel = new DefaultComboBoxModel();
 	private static JComboBox storageComboBox = new JComboBox(comboModel);
+	private static twProgress twp = new twProgress(progress);
 	private File fileList = new File(System.getProperty("user.home"));
 	private JScrollPane ctwrp = getTWListStrings(true);
 	private JScrollPane ftwrp = getLocalFiles(fileList.listFiles(new TextFileFilter()), true);
@@ -79,6 +80,17 @@ public class twrpGui {
 				@Override
 				public void run() {
 					updateTWFiles(text);
+				}
+			});
+		}
+	}
+	
+	public static void twProgressUpdate(final int val) {
+		if (!SwingUtilities.isEventDispatchThread()) {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					updateProgress(val);
 				}
 			});
 		}
@@ -125,6 +137,10 @@ public class twrpGui {
 	
 	static private void updateConsole(String text) {
 		textArea.append(text);
+	}
+	
+	static private void updateProgress(int val) {
+		progress.setValue(val);
 	}
 	
 	private JScrollPane getLocalFiles(File[] all, boolean vertical) {
@@ -228,12 +244,9 @@ public class twrpGui {
 					System.out.println("count: " + count);
 					for (int i = 1; i < count - 1; ++i) {
 						twParDir = twParDir + tokens[i];
-						System.out.println("i: " + i);
-						System.out.println("twParDir: " + twParDir);
 						if (i < count - 2)
 							twParDir += "/";
 					}
-					System.out.println("twParDir: " + twParDir);
 				}
 			}
 		}
@@ -286,8 +299,14 @@ public class twrpGui {
 	
 	private class toListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
+			String fileToWrite = "";
+			String tokens[] = sendFile.split("/");
+			int count = tokens.length;
+			for (int i = 1; i < count; ++i) {
+				fileToWrite = tokens[i];
+			}
 			cmd.setData("send " + sendFile);
-			twProgress twp = new twProgress(progress);
+			cmd.setArg(fileToWrite);
 			Thread progressT = new Thread(twp);
 			progressT.start();
 			twProgressD = new JDialog(f, "File Progress", Dialog.ModalityType.DOCUMENT_MODAL);

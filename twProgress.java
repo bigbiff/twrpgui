@@ -2,13 +2,18 @@ import javax.swing.*;
 import net.miginfocom.swing.*;
 
 public class twProgress implements Runnable {
-	private JProgressBar progress;
+	private static JProgressBar progress;
 	
 	public twProgress(JProgressBar progress) {
 		this.progress = progress;
 	}
 	
+	public static void setProgress(int i) {
+		progress.setValue(i);
+	}
+	
     public void run() {
+    	/*
             for (int i = 0; i <= 2000; ++i) {
                     progress.setValue(i);
                     try {
@@ -19,5 +24,7 @@ public class twProgress implements Runnable {
                     }
                     i += 10;
             }
+        */
+    	
     }
 }

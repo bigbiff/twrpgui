@@ -80,19 +80,37 @@ public class clientSocket implements Runnable {
 		return 0;
 	}
 
-	private int getBinData(double size) {
+	private int getBinData(String fn, double size) {
 		double s = 0;
+		double y = 0;
+		int packetSize = 4096;
+		int integral, pval = 0, val, bytesRead = 0, read = 0;
+		byte[] bytestream = new byte[4096];
+		
 		try {
+			System.out.println("file: " + fn);
 			FileOutputStream fos = new FileOutputStream("/tmp/boot2.img");
 			DataOutputStream dos = new DataOutputStream(fos);
+			//2000 is the number of units in the progressbar
+			//y is a factor of the size and progressbar
+			y = size / 2000;
 			
 			while (s < size) {
-				System.out.println("s: " + s);
-				System.out.println("size: " + size);
-				if (s + 4096 > size)
+				if (s + packetSize > size)
 					s = s + (size - s);
 				else
-					s += 4096;
+					s += packetSize;
+				//System.out.println("s: " + s);
+				//System.out.println("size: " + size);
+				
+				//4096 is max packet size
+				if (packetSize >= y)
+					integral = 1;
+				else 
+					integral = (int) Math.floor(y / packetSize);
+				pval += integral;
+				twrpGui.twProgressUpdate(pval);
+				
 				try {
 					connection = new Socket(host, dataPort);
 				}
@@ -107,17 +125,17 @@ public class clientSocket implements Runnable {
 					return -1;
 				}
 				try {
-					int bytesRead, val;
-					byte[] bytestream = new byte[4096];
-					InputStream is = connection.getInputStream();
-					bytesRead = is.read(bytestream, 0, bytestream.length);
-					for (int i = 0; i < bytestream.length; ++i) {
-						val = bytestream[i] &0xFF;
+					InputStream is = new BufferedInputStream(connection.getInputStream());
+					while (read < packetSize && (bytesRead = is.read(bytestream, read, bytestream.length - read)) != -1)
+						read += bytesRead;
+					for (int i = 0; i < packetSize; ++i) {
+						val = bytestream[i] & 0xFF;
 						dos.writeByte(val);
-						//System.out.println("val: " + Integer.toHexString(val));	
+						//System.out.println("val " + i + ": " + Integer.toHexString(val));	
 					}
 					is.close();
 					connection.close();
+					read = 0;
 				}
 				catch (IOException e) {
 					twrpGui.updateTWRPConsole("IOException: " + e);
@@ -126,6 +144,7 @@ public class clientSocket implements Runnable {
 			}
 			dos.close();
 			fos.close();
+			connection.close();
 		}
 		catch (IOException e) {
 			return -1;
@@ -214,7 +233,7 @@ public class clientSocket implements Runnable {
 							System.out.println("interrupted");
 						}
 					}
-					if (getBinData(Double.parseDouble(data.getArg())) != 0) 
+					if (getBinData(cmd.getArg(), Double.parseDouble(data.getArg())) != 0) 
 						return;
 				}
 				if ("lsdir".equals(cmdToSend)) {
