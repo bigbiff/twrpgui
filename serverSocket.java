@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 public class serverSocket implements Runnable {
 	private ServerSocket server;
 	private Socket connection = null;
-	private int port = 9000;
+	private int port = 9002;
 	private String message;
 	private volatile MutableObject data;
 	private String[] datacmds = {"readylsdir", "readystorage", "readysend"};

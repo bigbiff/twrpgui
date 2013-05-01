@@ -84,16 +84,20 @@ public class clientSocket implements Runnable {
 		double s = 0;
 		double y = 0;
 		int packetSize = 4096;
-		int integral, pval = 0, val, bytesRead = 0, read = 0;
+		int val, pval = 0, read = 0;
+		double integral, bytesRead = 0;
 		byte[] bytestream = new byte[4096];
 		
 		try {
 			System.out.println("file: " + fn);
-			FileOutputStream fos = new FileOutputStream("/tmp/boot2.img");
+			FileOutputStream fos = new FileOutputStream(fn);
 			DataOutputStream dos = new DataOutputStream(fos);
 			//2000 is the number of units in the progressbar
 			//y is a factor of the size and progressbar
 			y = size / 2000;
+			System.out.println("y: " + y);
+			if (size < packetSize)
+				packetSize = (int) size;
 			
 			while (s < size) {
 				if (s + packetSize > size)
@@ -104,11 +108,17 @@ public class clientSocket implements Runnable {
 				//System.out.println("size: " + size);
 				
 				//4096 is max packet size
-				if (packetSize >= y)
+				if (y < 1) {
+					integral = 2000;
+					System.out.println("here");
+				}
+				else if (packetSize >= y)
 					integral = 1;
 				else 
 					integral = (int) Math.floor(y / packetSize);
+				
 				pval += integral;
+				System.out.println("pval: " + pval);
 				twrpGui.twProgressUpdate(pval);
 				
 				try {

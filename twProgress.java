@@ -13,18 +13,7 @@ public class twProgress implements Runnable {
 	}
 	
     public void run() {
-    	/*
-            for (int i = 0; i <= 2000; ++i) {
-                    progress.setValue(i);
-                    try {
-                            Thread.sleep(100);
-                    }
-                    catch (InterruptedException ie) {
-                            System.out.println("interrupted");
-                    }
-                    i += 10;
-            }
-        */
+    	
     	
     }
 }

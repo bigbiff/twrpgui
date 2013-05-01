@@ -172,6 +172,7 @@ public class twrpGui {
 	}
     
 	public twrpGui() {
+		parDir = System.getProperty("user.home");
 		serverSocket recoveryServer = new serverSocket(data);
 		Thread server = new Thread(recoveryServer);
 		server.start();
@@ -283,7 +284,6 @@ public class twrpGui {
 					parDir = common.getParentDir(parDir);
 					twDirSelected = parDir;
 					origParDir = parDir;
-					System.out.println("here3 oarDur: " + parDir);
 				}
 					else {			
 					fileListModel.removeAllElements();
@@ -306,7 +306,7 @@ public class twrpGui {
 				fileToWrite = tokens[i];
 			}
 			cmd.setData("send " + sendFile);
-			cmd.setArg(fileToWrite);
+			cmd.setArg(parDir + "/" + fileToWrite);
 			Thread progressT = new Thread(twp);
 			progressT.start();
 			twProgressD = new JDialog(f, "File Progress", Dialog.ModalityType.DOCUMENT_MODAL);
@@ -458,8 +458,8 @@ class TextFileFilter implements FileFilter {
 
     public boolean accept(File file) {
     	Boolean result = false; 
-        if (file.isDirectory())
-        	result = true;
+        //if (file.isDirectory())
+        result = true;
       	return result;
     }
 }
